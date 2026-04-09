@@ -1,0 +1,89 @@
+{
+  "name": "AmkyawDev Market",
+  "version": "1.0.0",
+  "description": "Online market platform for selling websites and web applications",
+  "admin": {
+    "email": "aung.thuyrain.at449@gmail.com",
+    "password": "admin449"
+  },
+  "products": [
+    {
+      "id": 1,
+      "name": "E-Commerce Website",
+      "description": "Full-featured online store with payment gateway integration",
+      "price": "$299",
+      "image": "🛒",
+      "demoLink": "https://github.com/demo/ecommerce",
+      "category": "Web Application"
+    },
+    {
+      "id": 2,
+      "name": "Portfolio Website",
+      "description": "Modern personal portfolio with animations",
+      "price": "$99",
+      "image": "👤",
+      "demoLink": "https://github.com/demo/portfolio",
+      "category": "Website"
+    },
+    {
+      "id": 3,
+      "name": "Business Landing Page",
+      "description": "Professional landing page for business websites",
+      "price": "$149",
+      "image": "🏢",
+      "demoLink": "https://github.com/demo/landing",
+      "category": "Website"
+    },
+    {
+      "id": 4,
+      "name": "Blog Platform",
+      "description": "Content management system for blogging",
+      "price": "$199",
+      "image": "📝",
+      "demoLink": "https://github.com/demo/blog",
+      "category": "Web Application"
+    },
+    {
+      "id": 5,
+      "name": "Restaurant Website",
+      "description": "Restaurant website with online ordering system",
+      "price": "$179",
+      "image": "🍽️",
+      "demoLink": "https://github.com/demo/restaurant",
+      "category": "Website"
+    },
+    {
+      "id": 6,
+      "name": "Real Estate Website",
+      "description": "Property listing and management system",
+      "price": "$349",
+      "image": "🏠",
+      "demoLink": "https://github.com/demo/realestate",
+      "category": "Web Application"
+    },
+    {
+      "id": 7,
+      "name": "Education Platform",
+      "description": "Online learning management system",
+      "price": "$399",
+      "image": "🎓",
+      "demoLink": "https://github.com/demo/education",
+      "category": "Web Application"
+    },
+    {
+      "id": 8,
+      "name": "Medical Clinic Website",
+      "description": "Healthcare clinic management website",
+      "price": "$249",
+      "image": "🏥",
+      "demoLink": "https://github.com/demo/medical",
+      "category": "Website"
+    }
+  ],
+  "stats": {
+    "totalProducts": 8,
+    "activeUsers": 156,
+    "totalOrders": 89,
+    "revenue": "$4.2k"
+  }
+}

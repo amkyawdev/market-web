@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AmkyawDev Market</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+    
+    <nav class="navbar">
+        <div class="logo">AmkyawDev Market</div>
+        <div class="nav-links">
+            <a href="#/" data-link>Market</a>
+            <a href="#/login" data-link>Admin Login</a>
+            <a href="#/admin" data-link id="admin-link" style="display: none;">Admin Panel</a>
+            <a href="#" id="logout-link" style="display: none;">Logout</a>
+        </div>
+    </nav>
+
+    <main id="app">
+        <!-- Content will be loaded here by router -->
+    </main>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+    <script type="module" src="src/core/app.js"></script>
+</body>
+</html>
