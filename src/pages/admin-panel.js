@@ -1,9 +1,11 @@
 // Admin Panel Page - Protected Route
 import { isAuthenticated, logout } from '../core/auth.js';
+import { getProducts, setProducts } from './market.js';
 
 // Storage keys
 const VISITORS_KEY = 'adminVisitors';
 const ORDERS_KEY = 'adminOrders';
+const PRODUCTS_KEY = 'adminProducts';
 
 /**
  * Initialize demo data if empty
@@ -32,6 +34,27 @@ const initDemoData = () => {
         ];
         localStorage.setItem(ORDERS_KEY, JSON.stringify(demoOrders));
     }
+    
+    // Initialize products if not exists (load from market.js)
+    if (!localStorage.getItem(PRODUCTS_KEY)) {
+        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(getProducts()));
+    }
+};
+
+/**
+ * Get products list
+ */
+const getStoredProducts = () => {
+    const stored = localStorage.getItem(PRODUCTS_KEY);
+    return stored ? JSON.parse(stored) : getProducts();
+};
+
+/**
+ * Save products to storage
+ */
+const saveProducts = (products) => {
+    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+    setProducts(products);
 };
 
 /**
@@ -96,6 +119,7 @@ export const renderAdminPanel = () => {
     
     const visitors = getVisitors();
     const orders = getOrders();
+    const products = getStoredProducts();
     const totalRevenue = orders
         .filter(o => o.status === 'Completed')
         .reduce((sum, o) => sum + parseInt(o.price.replace('$', '')), 0);
@@ -404,7 +428,7 @@ export const renderAdminPanel = () => {
             <div class="admin-stats">
                 <div class="stat-card">
                     <h3>Total Products</h3>
-                    <div class="value">8</div>
+                    <div class="value">${products.length}</div>
                 </div>
                 <div class="stat-card">
                     <h3>Total Orders</h3>
@@ -525,30 +549,20 @@ export const renderAdminPanel = () => {
                             </tr>
                         </thead>
                         <tbody id="websites-table-body">
+                            ${products.map(product => `
                             <tr>
-                                <td>1</td>
-                                <td>E-Commerce Website</td>
-                                <td>Full-featured online store with payment gateway</td>
-                                <td>$299</td>
-                                <td>Web Application</td>
-                                <td><a href="https://github.com/demo/ecommerce" target="_blank" style="color: #00d4ff;">View</a></td>
+                                <td>${product.id}</td>
+                                <td>${product.name}</td>
+                                <td>${product.description}</td>
+                                <td>${product.price}</td>
+                                <td>${product.category}</td>
+                                <td><a href="${product.demoLink}" target="_blank" style="color: #00d4ff;">View</a></td>
                                 <td>
-                                    <button class="action-btn">Edit</button>
-                                    <button class="action-btn delete">Delete</button>
+                                    <button class="action-btn edit-product" data-id="${product.id}">Edit</button>
+                                    <button class="action-btn delete delete-product" data-id="${product.id}">Delete</button>
                                 </td>
                             </tr>
-                            <tr>
-                                <td>2</td>
-                                <td>Portfolio Website</td>
-                                <td>Modern personal portfolio with animations</td>
-                                <td>$99</td>
-                                <td>Website</td>
-                                <td><a href="https://github.com/demo/portfolio" target="_blank" style="color: #00d4ff;">View</a></td>
-                                <td>
-                                    <button class="action-btn">Edit</button>
-                                    <button class="action-btn delete">Delete</button>
-                                </td>
-                            </tr>
+                            `).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -624,10 +638,84 @@ const setupWebsiteForm = () => {
     if (form) {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
+            
+            const name = document.getElementById('website-name').value;
+            const description = document.getElementById('website-description').value;
+            const price = document.getElementById('website-price').value;
+            const demoLink = document.getElementById('website-demo-link').value;
+            const category = document.getElementById('website-category').value;
+            
+            // Get existing products
+            const products = getStoredProducts();
+            
+            // Generate new ID
+            const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+            
+            // Create new product
+            const newProduct = {
+                id: newId,
+                name: name,
+                description: description,
+                price: price,
+                image: `assets/images/web${((newId - 1) % 8) + 1}.svg`,
+                demoLink: demoLink,
+                category: category
+            };
+            
+            // Add to products array
+            products.push(newProduct);
+            
+            // Save to storage
+            saveProducts(products);
+            
             alert('Website added successfully!');
             form.reset();
+            renderAdminPanel();
         });
     }
+    
+    // Setup delete product buttons
+    const deleteProductBtns = document.querySelectorAll('.delete-product');
+    deleteProductBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const productId = parseInt(e.target.dataset.id);
+            if (confirm('Are you sure you want to delete this website?')) {
+                const products = getStoredProducts();
+                const updatedProducts = products.filter(p => p.id !== productId);
+                saveProducts(updatedProducts);
+                renderAdminPanel();
+            }
+        });
+    });
+    
+    // Setup edit product buttons
+    const editProductBtns = document.querySelectorAll('.edit-product');
+    editProductBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const productId = parseInt(e.target.dataset.id);
+            const products = getStoredProducts();
+            const product = products.find(p => p.id === productId);
+            
+            if (product) {
+                const newName = prompt('Enter new name:', product.name);
+                const newPrice = prompt('Enter new price:', product.price);
+                const newDesc = prompt('Enter new description:', product.description);
+                
+                if (newName && newPrice && newDesc) {
+                    const updatedProducts = products.map(p => 
+                        p.id === productId ? {
+                            ...p,
+                            name: newName,
+                            price: newPrice,
+                            description: newDesc
+                        } : p
+                    );
+                    saveProducts(updatedProducts);
+                    renderAdminPanel();
+                }
+            }
+        });
+    });
 };
 
 export default { renderAdminPanel };

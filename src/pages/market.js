@@ -8,7 +8,7 @@ const products = [
         name: "E-Commerce Website",
         description: "Full-featured online store with payment gateway integration",
         price: "$299",
-        image: "🛒",
+        image: "assets/images/web1.svg",
         demoLink: "https://github.com/demo/ecommerce",
         category: "Web Application"
     },
@@ -17,7 +17,7 @@ const products = [
         name: "Portfolio Website",
         description: "Modern personal portfolio with animations",
         price: "$99",
-        image: "👤",
+        image: "assets/images/web2.svg",
         demoLink: "https://github.com/demo/portfolio",
         category: "Website"
     },
@@ -26,7 +26,7 @@ const products = [
         name: "Business Landing Page",
         description: "Professional landing page for business websites",
         price: "$149",
-        image: "🏢",
+        image: "assets/images/web3.svg",
         demoLink: "https://github.com/demo/landing",
         category: "Website"
     },
@@ -35,7 +35,7 @@ const products = [
         name: "Blog Platform",
         description: "Content management system for blogging",
         price: "$199",
-        image: "📝",
+        image: "assets/images/web4.svg",
         demoLink: "https://github.com/demo/blog",
         category: "Web Application"
     },
@@ -44,7 +44,7 @@ const products = [
         name: "Restaurant Website",
         description: "Restaurant website with online ordering system",
         price: "$179",
-        image: "🍽️",
+        image: "assets/images/web5.svg",
         demoLink: "https://github.com/demo/restaurant",
         category: "Website"
     },
@@ -53,7 +53,7 @@ const products = [
         name: "Real Estate Website",
         description: "Property listing and management system",
         price: "$349",
-        image: "🏠",
+        image: "assets/images/web6.svg",
         demoLink: "https://github.com/demo/realestate",
         category: "Web Application"
     },
@@ -62,7 +62,7 @@ const products = [
         name: "Education Platform",
         description: "Online learning management system",
         price: "$399",
-        image: "🎓",
+        image: "assets/images/web7.svg",
         demoLink: "https://github.com/demo/education",
         category: "Web Application"
     },
@@ -71,11 +71,18 @@ const products = [
         name: "Medical Clinic Website",
         description: "Healthcare clinic management website",
         price: "$249",
-        image: "🏥",
+        image: "assets/images/web8.svg",
         demoLink: "https://github.com/demo/medical",
         category: "Website"
     }
 ];
+
+// Export products for admin panel
+export const getProducts = () => products;
+export const setProducts = (newProducts) => {
+    products.length = 0;
+    products.push(...newProducts);
+};
 
 /**
  * Render the market page
@@ -171,6 +178,12 @@ export const renderMarketPage = () => {
                 font-size: 5rem;
                 position: relative;
                 overflow: hidden;
+            }
+            
+            .product-image img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
             
             .product-image::before {
@@ -303,7 +316,7 @@ const renderProducts = (productsData) => {
     return productsData.map(product => `
         <div class="product-card" data-category="${product.category}">
             <div class="product-image">
-                ${product.image}
+                <img src="${product.image}" alt="${product.name}" onerror="this.parentElement.innerHTML='🛒'">
                 <span class="product-category">${product.category}</span>
             </div>
             <div class="product-info">
