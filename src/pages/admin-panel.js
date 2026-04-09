@@ -1,125 +1,80 @@
-// Admin Panel Page - Protected Route
+// Admin Panel Page - 3D Modern Dashboard Design
 import { isAuthenticated, logout } from '../core/auth.js';
-import { getProducts, setProducts } from './market.js';
+import { loadJSONData, getCachedData, saveWebsites, saveOrders, saveVisitors } from '../utils/storage.js';
 
-// Storage keys
-const VISITORS_KEY = 'adminVisitors';
-const ORDERS_KEY = 'adminOrders';
-const PRODUCTS_KEY = 'adminProducts';
+let adminData = null;
 
 /**
  * Initialize demo data if empty
  */
-const initDemoData = () => {
-    // Initialize visitors if not exists
-    if (!localStorage.getItem(VISITORS_KEY)) {
-        const demoVisitors = [
-            { id: 1, timestamp: '2024-04-09 10:30:45', ip: '192.168.1.101', action: 'Login Success' },
-            { id: 2, timestamp: '2024-04-09 10:25:12', ip: '192.168.1.102', action: 'Login Success' },
-            { id: 3, timestamp: '2024-04-09 09:15:33', ip: '192.168.1.103', action: 'Page View' },
-            { id: 4, timestamp: '2024-04-08 16:45:22', ip: '192.168.1.104', action: 'Login Failed' },
-            { id: 5, timestamp: '2024-04-08 14:20:18', ip: '192.168.1.105', action: 'Login Success' }
-        ];
-        localStorage.setItem(VISITORS_KEY, JSON.stringify(demoVisitors));
+const initDemoData = async () => {
+    if (!adminData) {
+        try {
+            adminData = await loadJSONData('data/website.json');
+        } catch (error) {
+            adminData = getCachedData();
+        }
     }
     
-    // Initialize orders if not exists
-    if (!localStorage.getItem(ORDERS_KEY)) {
-        const demoOrders = [
-            { id: 1, product: 'E-Commerce Website', price: '$299', customer: 'John Doe', email: 'john@example.com', date: '2024-04-09 10:30:45', status: 'Pending' },
-            { id: 2, product: 'Portfolio Website', price: '$99', customer: 'Jane Smith', email: 'jane@example.com', date: '2024-04-09 09:15:22', status: 'Completed' },
-            { id: 3, product: 'Restaurant Website', price: '$179', customer: 'Mike Johnson', email: 'mike@example.com', date: '2024-04-08 14:20:10', status: 'Completed' },
-            { id: 4, product: 'Real Estate Website', price: '$349', customer: 'Sarah Williams', email: 'sarah@example.com', date: '2024-04-08 11:05:33', status: 'Pending' },
-            { id: 5, product: 'Blog Platform', price: '$199', customer: 'Tom Brown', email: 'tom@example.com', date: '2024-04-07 16:30:45', status: 'Completed' }
-        ];
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(demoOrders));
-    }
-    
-    // Initialize products if not exists (load from market.js)
-    if (!localStorage.getItem(PRODUCTS_KEY)) {
-        localStorage.setItem(PRODUCTS_KEY, JSON.stringify(getProducts()));
+    const data = getCachedData() || adminData;
+    if (data) {
+        saveWebsites(data.websites || []);
+        saveOrders(data.orders || []);
+        saveVisitors(data.visitors || []);
     }
 };
 
 /**
- * Get products list
+ * Get stored data
  */
-const getStoredProducts = () => {
-    const stored = localStorage.getItem(PRODUCTS_KEY);
-    return stored ? JSON.parse(stored) : getProducts();
-};
-
-/**
- * Save products to storage
- */
-const saveProducts = (products) => {
-    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
-    setProducts(products);
-};
-
-/**
- * Get visitors list
- */
-const getVisitors = () => {
-    const visitors = localStorage.getItem(VISITORS_KEY);
-    return visitors ? JSON.parse(visitors) : [];
-};
-
-/**
- * Get orders list
- */
-const getOrders = () => {
-    const orders = localStorage.getItem(ORDERS_KEY);
-    return orders ? JSON.parse(orders) : [];
-};
-
-/**
- * Add a new visitor record
- */
-const addVisitor = (action) => {
-    const visitors = getVisitors();
-    const newVisitor = {
-        id: Date.now(),
-        timestamp: new Date().toLocaleString('en-US', { hour12: false }),
-        ip: '192.168.1.' + Math.floor(Math.random() * 255),
-        action: action
+const getData = () => {
+    return {
+        websites: getCachedData()?.websites || adminData?.websites || [],
+        orders: getCachedData()?.orders || adminData?.orders || [],
+        visitors: getCachedData()?.visitors || adminData?.visitors || []
     };
-    visitors.unshift(newVisitor);
-    localStorage.setItem(VISITORS_KEY, JSON.stringify(visitors.slice(0, 100))); // Keep last 100
 };
 
 /**
- * Check if user is authenticated, if not redirect to login
- * @returns {boolean} - True if authenticated
+ * Check if user is authenticated
  */
 export const requireAuth = () => {
     if (!isAuthenticated()) {
         window.location.hash = '#/login';
         return false;
     }
-    // Log this visit
     addVisitor('Admin Panel Visit');
     return true;
 };
 
 /**
- * Render the admin panel page
+ * Add visitor record
  */
-export const renderAdminPanel = () => {
+const addVisitor = (action) => {
+    const visitors = getData().visitors;
+    visitors.unshift({
+        id: Date.now(),
+        timestamp: new Date().toLocaleString('en-US', { hour12: false }),
+        ip: '192.168.1.' + Math.floor(Math.random() * 255),
+        action: action
+    });
+    saveVisitors(visitors.slice(0, 100));
+};
+
+/**
+ * Render the admin panel page with 3D design
+ */
+export const renderAdminPanel = async () => {
     const app = document.getElementById('app');
     if (!app) return;
 
-    // Check authentication
-    if (!requireAuth()) {
-        return;
-    }
+    if (!requireAuth()) return;
 
-    // Initialize demo data
-    initDemoData();
+    await initDemoData();
     
-    const visitors = getVisitors();
-    const orders = getOrders();
-    const products = getStoredProducts();
+    const data = getData();
+    const { websites, orders, visitors } = data;
+    
     const totalRevenue = orders
         .filter(o => o.status === 'Completed')
         .reduce((sum, o) => sum + parseInt(o.price.replace('$', '')), 0);
@@ -134,117 +89,216 @@ export const renderAdminPanel = () => {
                 z-index: 1;
             }
             
+            /* 3D Header Card */
             .admin-header {
-                background: rgba(255, 255, 255, 0.1);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 20px;
-                padding: 30px;
+                background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(123, 47, 247, 0.15));
+                backdrop-filter: blur(30px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 24px;
+                padding: 35px 40px;
                 margin-bottom: 30px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 flex-wrap: wrap;
-                gap: 20px;
+                gap: 25px;
+                position: relative;
+                transform-style: preserve-3d;
+                box-shadow: 
+                    0 25px 50px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+            
+            .admin-header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            }
+            
+            .header-content {
+                position: relative;
+                transform: translateZ(20px);
             }
             
             .admin-header h1 {
                 color: #fff;
-                font-size: 2rem;
-                margin-bottom: 5px;
+                font-size: 2.2rem;
+                margin-bottom: 8px;
+                font-weight: 700;
+                text-shadow: 0 2px 20px rgba(0, 212, 255, 0.5);
+                background: linear-gradient(135deg, #00d4ff, #fff);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
             }
             
             .admin-header p {
                 color: rgba(255, 255, 255, 0.7);
+                font-size: 1rem;
             }
             
             .logout-btn {
-                padding: 12px 24px;
+                padding: 14px 28px;
                 background: linear-gradient(135deg, #ff5252, #d32f2f);
                 color: #fff;
                 border: none;
-                border-radius: 8px;
+                border-radius: 12px;
                 font-size: 0.95rem;
-                font-weight: 500;
+                font-weight: 600;
                 cursor: pointer;
                 transition: all 0.3s ease;
+                position: relative;
+                transform: translateZ(10px);
+                box-shadow: 0 10px 30px rgba(255, 82, 82, 0.3);
             }
             
             .logout-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(255, 82, 82, 0.3);
+                transform: translateZ(15px) translateY(-3px);
+                box-shadow: 0 15px 40px rgba(255, 82, 82, 0.4);
             }
             
+            /* 3D Stats Cards */
             .admin-stats {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 25px;
                 margin-bottom: 30px;
             }
             
             .stat-card {
-                background: rgba(255, 255, 255, 0.1);
+                background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
                 backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 15px;
-                padding: 25px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                padding: 28px;
                 text-align: center;
+                position: relative;
+                transform-style: preserve-3d;
+                transition: all 0.4s ease;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            }
+            
+            .stat-card::after {
+                content: '';
+                position: absolute;
+                bottom: -1px;
+                left: 20%;
+                right: 20%;
+                height: 3px;
+                background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.6), transparent);
+                border-radius: 0 0 20px 20px;
+            }
+            
+            .stat-card:hover {
+                transform: translateY(-10px) rotateX(5deg);
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            }
+            
+            .stat-card .icon {
+                font-size: 2.5rem;
+                margin-bottom: 15px;
+                display: block;
+                filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.5));
             }
             
             .stat-card h3 {
                 color: rgba(255, 255, 255, 0.7);
                 font-size: 0.85rem;
-                margin-bottom: 10px;
+                margin-bottom: 12px;
                 text-transform: uppercase;
-                letter-spacing: 1px;
+                letter-spacing: 1.5px;
+                font-weight: 500;
             }
             
             .stat-card .value {
-                color: #00d4ff;
-                font-size: 2.2rem;
-                font-weight: 700;
+                font-size: 2.8rem;
+                font-weight: 800;
+                background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
             }
             
+            /* 3D Tabs */
             .admin-tabs {
                 display: flex;
-                gap: 10px;
+                gap: 12px;
                 margin-bottom: 25px;
                 flex-wrap: wrap;
             }
             
             .tab-btn {
-                padding: 12px 25px;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 10px;
-                color: #fff;
+                padding: 14px 28px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 14px;
+                color: rgba(255, 255, 255, 0.7);
                 cursor: pointer;
                 transition: all 0.3s ease;
                 font-size: 0.95rem;
-                font-weight: 500;
+                font-weight: 600;
+                position: relative;
+                overflow: hidden;
             }
             
-            .tab-btn:hover,
+            .tab-btn::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+                transition: left 0.3s ease;
+                z-index: -1;
+            }
+            
+            .tab-btn:hover {
+                color: #fff;
+                border-color: transparent;
+                transform: translateY(-3px);
+                box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+            }
+            
+            .tab-btn:hover::before {
+                left: 0;
+            }
+            
             .tab-btn.active {
                 background: linear-gradient(135deg, #00d4ff, #7b2ff7);
                 border-color: transparent;
+                color: #fff;
+                box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
             }
             
             .tab-content {
                 display: none;
+                animation: fadeIn 0.4s ease;
             }
             
             .tab-content.active {
                 display: block;
             }
             
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            /* 3D Table */
             .data-table {
                 width: 100%;
-                background: rgba(255, 255, 255, 0.08);
+                background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
                 backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                border-radius: 15px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
                 overflow: hidden;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
             }
             
             .data-table table {
@@ -252,25 +306,24 @@ export const renderAdminPanel = () => {
                 border-collapse: collapse;
             }
             
-            .data-table th,
-            .data-table td {
-                padding: 15px 20px;
-                text-align: left;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            
             .data-table th {
-                background: rgba(0, 212, 255, 0.1);
+                background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(123, 47, 247, 0.15));
                 color: #00d4ff;
                 font-weight: 600;
                 font-size: 0.85rem;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
+                letter-spacing: 1px;
+                padding: 20px 25px;
+                text-align: left;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             }
             
             .data-table td {
                 color: rgba(255, 255, 255, 0.85);
                 font-size: 0.95rem;
+                padding: 18px 25px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                transition: all 0.3s ease;
             }
             
             .data-table tr:last-child td {
@@ -278,114 +331,107 @@ export const renderAdminPanel = () => {
             }
             
             .data-table tr:hover td {
-                background: rgba(255, 255, 255, 0.05);
+                background: rgba(0, 212, 255, 0.05);
+                transform: translateX(5px);
             }
             
             .status-badge {
-                padding: 5px 12px;
+                padding: 6px 14px;
                 border-radius: 20px;
                 font-size: 0.8rem;
-                font-weight: 500;
+                font-weight: 600;
             }
             
             .status-badge.pending {
                 background: rgba(255, 193, 7, 0.2);
                 color: #ffc107;
+                box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
             }
             
             .status-badge.completed {
                 background: rgba(76, 175, 80, 0.2);
                 color: #4caf50;
-            }
-            
-            .action-badge {
-                padding: 5px 12px;
-                border-radius: 20px;
-                font-size: 0.8rem;
-                font-weight: 500;
-            }
-            
-            .action-badge.success {
-                background: rgba(76, 175, 80, 0.2);
-                color: #4caf50;
-            }
-            
-            .action-badge.failed {
-                background: rgba(244, 67, 54, 0.2);
-                color: #f44336;
-            }
-            
-            .action-badge.view {
-                background: rgba(0, 212, 255, 0.2);
-                color: #00d4ff;
+                box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
             }
             
             .action-btn {
-                padding: 6px 12px;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 6px;
+                padding: 8px 16px;
+                border-radius: 8px;
                 color: #fff;
                 cursor: pointer;
-                font-size: 0.8rem;
+                font-size: 0.85rem;
+                font-weight: 500;
                 transition: all 0.3s ease;
-                margin-right: 5px;
-            }
-            
-            .action-btn:hover {
-                background: rgba(255, 255, 255, 0.2);
+                border: none;
             }
             
             .action-btn.complete {
-                background: rgba(76, 175, 80, 0.2);
-                border-color: rgba(76, 175, 80, 0.4);
+                background: linear-gradient(135deg, #4caf50, #2e7d32);
+            }
+            
+            .action-btn.complete:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
             }
             
             .action-btn.delete {
-                background: rgba(244, 67, 54, 0.2);
-                border-color: rgba(244, 67, 54, 0.4);
+                background: linear-gradient(135deg, #f44336, #c62828);
             }
             
-            .add-website-form {
-                background: rgba(255, 255, 255, 0.08);
+            .action-btn.delete:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(244, 67, 54, 0.4);
+            }
+            
+            /* 3D Form */
+            .add-form {
+                background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
                 backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                border-radius: 15px;
-                padding: 25px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                padding: 30px;
                 margin-bottom: 25px;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
             }
             
-            .add-website-form h3 {
+            .add-form h3 {
                 color: #fff;
-                margin-bottom: 20px;
-                font-size: 1.2rem;
+                margin-bottom: 25px;
+                font-size: 1.3rem;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
             
             .form-row {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 15px;
-                margin-bottom: 15px;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 18px;
+                margin-bottom: 18px;
             }
             
             .form-row input,
             .form-row select {
-                padding: 12px 15px;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 8px;
+                padding: 14px 18px;
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 12px;
                 color: #fff;
                 font-size: 0.95rem;
+                transition: all 0.3s ease;
             }
             
             .form-row input::placeholder {
-                color: rgba(255, 255, 255, 0.5);
+                color: rgba(255, 255, 255, 0.4);
             }
             
             .form-row input:focus,
             .form-row select:focus {
                 outline: none;
                 border-color: rgba(0, 212, 255, 0.6);
+                box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+                background: rgba(255, 255, 255, 0.12);
             }
             
             .form-row select option {
@@ -393,70 +439,133 @@ export const renderAdminPanel = () => {
             }
             
             .submit-btn {
-                padding: 12px 30px;
+                padding: 14px 35px;
                 background: linear-gradient(135deg, #00d4ff, #7b2ff7);
                 border: none;
-                border-radius: 8px;
+                border-radius: 12px;
                 color: #fff;
-                font-size: 0.95rem;
+                font-size: 1rem;
                 font-weight: 600;
                 cursor: pointer;
                 transition: all 0.3s ease;
+                box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
             }
             
             .submit-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+                transform: translateY(-3px);
+                box-shadow: 0 15px 40px rgba(0, 212, 255, 0.4);
             }
             
             .empty-state {
                 text-align: center;
-                padding: 50px;
+                padding: 60px;
                 color: rgba(255, 255, 255, 0.5);
+                font-size: 1.1rem;
             }
         </style>
         
         <div class="admin-container">
             <div class="admin-header">
-                <div>
-                    <h1>🛠️ Admin Panel</h1>
-                    <p>Welcome to AmkyawDev Market Admin Dashboard</p>
+                <div class="header-content">
+                    <h1>🛠️ Admin Dashboard</h1>
+                    <p>Manage your AmkyawDev Market</p>
                 </div>
                 <button id="logout-btn" class="logout-btn">Logout</button>
             </div>
             
             <div class="admin-stats">
                 <div class="stat-card">
+                    <span class="icon">🌐</span>
                     <h3>Total Products</h3>
-                    <div class="value">${products.length}</div>
+                    <div class="value">${websites.length}</div>
                 </div>
                 <div class="stat-card">
+                    <span class="icon">📋</span>
                     <h3>Total Orders</h3>
                     <div class="value">${orders.length}</div>
                 </div>
                 <div class="stat-card">
+                    <span class="icon">👥</span>
                     <h3>Total Visitors</h3>
                     <div class="value">${visitors.length}</div>
                 </div>
                 <div class="stat-card">
+                    <span class="icon">💰</span>
                     <h3>Revenue</h3>
                     <div class="value">$${totalRevenue}</div>
                 </div>
             </div>
             
             <div class="admin-tabs">
-                <button class="tab-btn active" data-tab="orders">📋 Orders</button>
+                <button class="tab-btn active" data-tab="websites">🌐 Websites</button>
+                <button class="tab-btn" data-tab="orders">📋 Orders</button>
                 <button class="tab-btn" data-tab="visitors">👥 Visitors</button>
-                <button class="tab-btn" data-tab="websites">🌐 Manage Websites</button>
             </div>
             
-            <!-- Orders Tab -->
-            <div class="tab-content active" id="tab-orders">
+            <!-- Websites Tab -->
+            <div class="tab-content active" id="tab-websites">
+                <div class="add-form">
+                    <h3>➕ Add New Website</h3>
+                    <form id="add-website-form">
+                        <div class="form-row">
+                            <input type="text" id="website-name" placeholder="Website Name" required>
+                            <input type="text" id="website-price" placeholder="Price (e.g., $299)" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="website-description" placeholder="Description" required>
+                            <select id="website-category" required>
+                                <option value="">Select Category</option>
+                                <option value="Website">Website</option>
+                                <option value="Web Application">Web Application</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <input type="url" id="website-demo-link" placeholder="Demo/GitHub Link" required>
+                            <input type="text" id="website-image" placeholder="Image Path" value="assets/images/web/web1.svg">
+                        </div>
+                        <button type="submit" class="submit-btn">Add Website</button>
+                    </form>
+                </div>
+                
                 <div class="data-table">
                     <table>
                         <thead>
                             <tr>
-                                <th>Order ID</th>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Category</th>
+                                <th>Link</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${websites.map(w => `
+                            <tr>
+                                <td>${w.id}</td>
+                                <td><strong>${w.name}</strong></td>
+                                <td>${w.description.substring(0, 40)}...</td>
+                                <td><span style="color: #00d4ff; font-weight: 600;">${w.price}</span></td>
+                                <td>${w.category}</td>
+                                <td><a href="${w.demoLink}" target="_blank" style="color: #7b2ff7;">View</a></td>
+                                <td>
+                                    <button class="action-btn delete delete-website" data-id="${w.id}">Delete</button>
+                                </td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Orders Tab -->
+            <div class="tab-content" id="tab-orders">
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
                                 <th>Product</th>
                                 <th>Price</th>
                                 <th>Customer</th>
@@ -467,20 +576,20 @@ export const renderAdminPanel = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            ${orders.map(order => `
-                                <tr>
-                                    <td>#${order.id}</td>
-                                    <td>${order.product}</td>
-                                    <td>${order.price}</td>
-                                    <td>${order.customer}</td>
-                                    <td>${order.email}</td>
-                                    <td>${order.date}</td>
-                                    <td><span class="status-badge ${order.status.toLowerCase()}">${order.status}</span></td>
-                                    <td>
-                                        <button class="action-btn complete" data-order-id="${order.id}" data-action="complete">✓ Complete</button>
-                                        <button class="action-btn delete" data-order-id="${order.id}" data-action="delete">✗ Delete</button>
-                                    </td>
-                                </tr>
+                            ${orders.map(o => `
+                            <tr>
+                                <td>${o.id}</td>
+                                <td><strong>${o.product}</strong></td>
+                                <td><span style="color: #00d4ff; font-weight: 600;">${o.price}</span></td>
+                                <td>${o.customer}</td>
+                                <td>${o.email}</td>
+                                <td>${o.date}</td>
+                                <td><span class="status-badge ${o.status.toLowerCase()}">${o.status}</span></td>
+                                <td>
+                                    <button class="action-btn complete complete-order" data-id="${o.id}">✓</button>
+                                    <button class="action-btn delete delete-order" data-id="${o.id}">✗</button>
+                                </td>
+                            </tr>
                             `).join('')}
                         </tbody>
                     </table>
@@ -500,69 +609,14 @@ export const renderAdminPanel = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            ${visitors.length > 0 ? visitors.map(visitor => `
-                                <tr>
-                                    <td>${visitor.id}</td>
-                                    <td>${visitor.timestamp}</td>
-                                    <td>${visitor.ip}</td>
-                                    <td><span class="action-badge ${visitor.action.includes('Failed') ? 'failed' : visitor.action.includes('Success') ? 'success' : 'view'}">${visitor.action}</span></td>
-                                </tr>
+                            ${visitors.length > 0 ? visitors.map(v => `
+                            <tr>
+                                <td>${v.id}</td>
+                                <td>${v.timestamp}</td>
+                                <td>${v.ip}</td>
+                                <td><span class="status-badge ${v.action.includes('Failed') ? 'pending' : v.action.includes('Success') ? 'completed' : 'pending'}">${v.action}</span></td>
+                            </tr>
                             `).join('') : '<tr><td colspan="4" class="empty-state">No visitors yet</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Manage Websites Tab -->
-            <div class="tab-content" id="tab-websites">
-                <div class="add-website-form">
-                    <h3>➕ Add New Website</h3>
-                    <form id="add-website-form">
-                        <div class="form-row">
-                            <input type="text" id="website-name" placeholder="Website Name" required>
-                            <input type="text" id="website-description" placeholder="Description" required>
-                            <input type="text" id="website-price" placeholder="Price (e.g., $299)" required>
-                        </div>
-                        <div class="form-row">
-                            <input type="url" id="website-demo-link" placeholder="Demo/GitHub Link" required>
-                            <select id="website-category" required>
-                                <option value="">Select Category</option>
-                                <option value="Website">Website</option>
-                                <option value="Web Application">Web Application</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="submit-btn">Add Website</button>
-                    </form>
-                </div>
-                
-                <div class="data-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Description</th>
-                                <th>Price</th>
-                                <th>Category</th>
-                                <th>Demo Link</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="websites-table-body">
-                            ${products.map(product => `
-                            <tr>
-                                <td>${product.id}</td>
-                                <td>${product.name}</td>
-                                <td>${product.description}</td>
-                                <td>${product.price}</td>
-                                <td>${product.category}</td>
-                                <td><a href="${product.demoLink}" target="_blank" style="color: #00d4ff;">View</a></td>
-                                <td>
-                                    <button class="action-btn edit-product" data-id="${product.id}">Edit</button>
-                                    <button class="action-btn delete delete-product" data-id="${product.id}">Delete</button>
-                                </td>
-                            </tr>
-                            `).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -570,65 +624,20 @@ export const renderAdminPanel = () => {
         </div>
     `;
 
-    // Add logout handler
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            logout();
-        });
-    }
-
-    // Setup tab switching
+    document.getElementById('logout-btn')?.addEventListener('click', () => logout());
     setupTabSwitching();
-    
-    // Setup order actions
-    setupOrderActions();
-    
-    // Setup website form
     setupWebsiteForm();
+    setupOrderActions();
 };
 
 const setupTabSwitching = () => {
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            const tabId = btn.dataset.tab;
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-        });
-    });
-};
-
-const setupOrderActions = () => {
-    const completeBtns = document.querySelectorAll('.action-btn.complete');
-    completeBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const orderId = parseInt(e.target.dataset.orderId);
-            const orders = getOrders();
-            const updatedOrders = orders.map(o => 
-                o.id === orderId ? { ...o, status: 'Completed' } : o
-            );
-            localStorage.setItem(ORDERS_KEY, JSON.stringify(updatedOrders));
-            alert('Order marked as completed!');
-            renderAdminPanel();
-        });
-    });
-    
-    const deleteBtns = document.querySelectorAll('.action-btn.delete');
-    deleteBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            if (confirm('Are you sure you want to delete this order?')) {
-                const orderId = parseInt(e.target.dataset.orderId);
-                const orders = getOrders();
-                const updatedOrders = orders.filter(o => o.id !== orderId);
-                localStorage.setItem(ORDERS_KEY, JSON.stringify(updatedOrders));
-                renderAdminPanel();
-            }
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
         });
     });
 };
@@ -639,80 +648,55 @@ const setupWebsiteForm = () => {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            const name = document.getElementById('website-name').value;
-            const description = document.getElementById('website-description').value;
-            const price = document.getElementById('website-price').value;
-            const demoLink = document.getElementById('website-demo-link').value;
-            const category = document.getElementById('website-category').value;
+            const websites = getData().websites;
+            const newId = websites.length > 0 ? Math.max(...websites.map(w => w.id)) + 1 : 1;
             
-            // Get existing products
-            const products = getStoredProducts();
-            
-            // Generate new ID
-            const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-            
-            // Create new product
-            const newProduct = {
+            websites.push({
                 id: newId,
-                name: name,
-                description: description,
-                price: price,
-                image: `assets/images/web${((newId - 1) % 8) + 1}.svg`,
-                demoLink: demoLink,
-                category: category
-            };
+                name: document.getElementById('website-name').value,
+                description: document.getElementById('website-description').value,
+                price: document.getElementById('website-price').value,
+                category: document.getElementById('website-category').value,
+                demoLink: document.getElementById('website-demo-link').value,
+                image: document.getElementById('website-image').value || 'assets/images/web/web1.svg'
+            });
             
-            // Add to products array
-            products.push(newProduct);
-            
-            // Save to storage
-            saveProducts(products);
-            
+            saveWebsites(websites);
             alert('Website added successfully!');
             form.reset();
             renderAdminPanel();
         });
     }
     
-    // Setup delete product buttons
-    const deleteProductBtns = document.querySelectorAll('.delete-product');
-    deleteProductBtns.forEach(btn => {
+    document.querySelectorAll('.delete-website').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const productId = parseInt(e.target.dataset.id);
-            if (confirm('Are you sure you want to delete this website?')) {
-                const products = getStoredProducts();
-                const updatedProducts = products.filter(p => p.id !== productId);
-                saveProducts(updatedProducts);
+            const id = parseInt(e.target.dataset.id);
+            if (confirm('Delete this website?')) {
+                const websites = getData().websites.filter(w => w.id !== id);
+                saveWebsites(websites);
                 renderAdminPanel();
             }
         });
     });
-    
-    // Setup edit product buttons
-    const editProductBtns = document.querySelectorAll('.edit-product');
-    editProductBtns.forEach(btn => {
+};
+
+const setupOrderActions = () => {
+    document.querySelectorAll('.complete-order').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const productId = parseInt(e.target.dataset.id);
-            const products = getStoredProducts();
-            const product = products.find(p => p.id === productId);
-            
-            if (product) {
-                const newName = prompt('Enter new name:', product.name);
-                const newPrice = prompt('Enter new price:', product.price);
-                const newDesc = prompt('Enter new description:', product.description);
-                
-                if (newName && newPrice && newDesc) {
-                    const updatedProducts = products.map(p => 
-                        p.id === productId ? {
-                            ...p,
-                            name: newName,
-                            price: newPrice,
-                            description: newDesc
-                        } : p
-                    );
-                    saveProducts(updatedProducts);
-                    renderAdminPanel();
-                }
+            const id = parseInt(e.target.dataset.id);
+            const orders = getData().orders.map(o => o.id === id ? { ...o, status: 'Completed' } : o);
+            saveOrders(orders);
+            renderAdminPanel();
+        });
+    });
+    
+    document.querySelectorAll('.delete-order').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = parseInt(e.target.dataset.id);
+            if (confirm('Delete this order?')) {
+                const orders = getData().orders.filter(o => o.id !== id);
+                saveOrders(orders);
+                renderAdminPanel();
             }
         });
     });

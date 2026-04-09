@@ -1,9 +1,43 @@
-// Storage utility for session/local storage handling
+/**
+ * Storage Utility - Handles JSON Data & LocalStorage
+ */
 
 const STORAGE_PREFIX = 'amkyawdev_';
+const CACHE_KEY = STORAGE_PREFIX + 'data_cache';
 
 /**
- * Set item in local storage with prefix
+ * Load JSON data from file and cache in localStorage
+ * @param {string} jsonPath - Path to JSON file
+ * @returns {Promise<Object>} - JSON data
+ */
+export const loadJSONData = async (jsonPath) => {
+    try {
+        const response = await fetch(jsonPath);
+        const data = await response.json();
+        
+        // Cache in localStorage
+        setItem('data_cache', data);
+        
+        return data;
+    } catch (error) {
+        console.error('Error loading JSON:', error);
+        // Try to get from cache
+        const cached = getItem('data_cache');
+        if (cached) return cached;
+        throw error;
+    }
+};
+
+/**
+ * Get cached data from localStorage
+ * @returns {Object|null}
+ */
+export const getCachedData = () => {
+    return getItem('data_cache');
+};
+
+/**
+ * Save data to localStorage
  * @param {string} key - Storage key
  * @param {any} value - Value to store
  */
@@ -16,10 +50,10 @@ export const setItem = (key, value) => {
 };
 
 /**
- * Get item from local storage
+ * Get item from localStorage
  * @param {string} key - Storage key
- * @param {any} defaultValue - Default value if not found
- * @returns {any} - Stored value or default
+ * @param {any} defaultValue - Default value
+ * @returns {any}
  */
 export const getItem = (key, defaultValue = null) => {
     try {
@@ -32,7 +66,7 @@ export const getItem = (key, defaultValue = null) => {
 };
 
 /**
- * Remove item from local storage
+ * Remove item from localStorage
  * @param {string} key - Storage key
  */
 export const removeItem = (key) => {
@@ -60,16 +94,31 @@ export const clearAll = () => {
 };
 
 /**
- * Check if storage is available
- * @returns {boolean}
+ * Save websites data
+ * @param {Array} websites 
  */
-export const isStorageAvailable = () => {
-    try {
-        const test = '__storage_test__';
-        localStorage.setItem(test, test);
-        localStorage.removeItem(test);
-        return true;
-    } catch (e) {
-        return false;
-    }
+export const saveWebsites = (websites) => {
+    const data = getCachedData() || {};
+    data.websites = websites;
+    setItem('data_cache', data);
+};
+
+/**
+ * Save orders data
+ * @param {Array} orders 
+ */
+export const saveOrders = (orders) => {
+    const data = getCachedData() || {};
+    data.orders = orders;
+    setItem('data_cache', data);
+};
+
+/**
+ * Save visitors data
+ * @param {Array} visitors 
+ */
+export const saveVisitors = (visitors) => {
+    const data = getCachedData() || {};
+    data.visitors = visitors;
+    setItem('data_cache', data);
 };

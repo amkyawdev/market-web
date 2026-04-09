@@ -1,4 +1,6 @@
-// Simple client-side router
+// Router - Client-side routing with background switching
+import { switchBackground } from './engine.js';
+
 const routes = {};
 
 export const registerRoute = (path, handler) => {
@@ -6,6 +8,8 @@ export const registerRoute = (path, handler) => {
 };
 
 export const router = {
+    currentPath: '/',
+    
     init() {
         window.addEventListener('hashchange', () => this.handleRoute());
         window.addEventListener('load', () => this.handleRoute());
@@ -13,12 +17,19 @@ export const router = {
 
     handleRoute() {
         const hash = window.location.hash.slice(1) || '/';
+        const prevPath = this.currentPath;
+        this.currentPath = hash;
+        
+        // Switch background when route changes
+        if (prevPath !== hash) {
+            switchBackground(hash);
+        }
+        
         const handler = routes[hash];
         
         if (handler) {
             handler();
         } else {
-            // Default to home
             routes['/']?.();
         }
     },
@@ -31,3 +42,5 @@ export const router = {
         return window.location.hash.slice(1) || '/';
     }
 };
+
+export default { registerRoute, router };

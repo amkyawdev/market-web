@@ -1,95 +1,27 @@
-// Market Page
-import { isAuthenticated } from '../core/auth.js';
+// Market Page - Market Grid with JSON Data
+import { loadJSONData, getCachedData } from '../utils/storage.js';
+import { renderProducts, filterProducts, searchProducts } from '../components/product-card.js';
 
-// Products data - Websites for sale
-const products = [
-    {
-        id: 1,
-        name: "E-Commerce Website",
-        description: "Full-featured online store with payment gateway integration",
-        price: "$299",
-        image: "assets/images/web1.svg",
-        demoLink: "https://github.com/demo/ecommerce",
-        category: "Web Application"
-    },
-    {
-        id: 2,
-        name: "Portfolio Website",
-        description: "Modern personal portfolio with animations",
-        price: "$99",
-        image: "assets/images/web2.svg",
-        demoLink: "https://github.com/demo/portfolio",
-        category: "Website"
-    },
-    {
-        id: 3,
-        name: "Business Landing Page",
-        description: "Professional landing page for business websites",
-        price: "$149",
-        image: "assets/images/web3.svg",
-        demoLink: "https://github.com/demo/landing",
-        category: "Website"
-    },
-    {
-        id: 4,
-        name: "Blog Platform",
-        description: "Content management system for blogging",
-        price: "$199",
-        image: "assets/images/web4.svg",
-        demoLink: "https://github.com/demo/blog",
-        category: "Web Application"
-    },
-    {
-        id: 5,
-        name: "Restaurant Website",
-        description: "Restaurant website with online ordering system",
-        price: "$179",
-        image: "assets/images/web5.svg",
-        demoLink: "https://github.com/demo/restaurant",
-        category: "Website"
-    },
-    {
-        id: 6,
-        name: "Real Estate Website",
-        description: "Property listing and management system",
-        price: "$349",
-        image: "assets/images/web6.svg",
-        demoLink: "https://github.com/demo/realestate",
-        category: "Web Application"
-    },
-    {
-        id: 7,
-        name: "Education Platform",
-        description: "Online learning management system",
-        price: "$399",
-        image: "assets/images/web7.svg",
-        demoLink: "https://github.com/demo/education",
-        category: "Web Application"
-    },
-    {
-        id: 8,
-        name: "Medical Clinic Website",
-        description: "Healthcare clinic management website",
-        price: "$249",
-        image: "assets/images/web8.svg",
-        demoLink: "https://github.com/demo/medical",
-        category: "Website"
-    }
-];
-
-// Export products for admin panel
-export const getProducts = () => products;
-export const setProducts = (newProducts) => {
-    products.length = 0;
-    products.push(...newProducts);
-};
+let marketData = null;
 
 /**
  * Render the market page
  */
-export const renderMarketPage = () => {
+export const renderMarketPage = async () => {
     const app = document.getElementById('app');
     if (!app) return;
+
+    // Load data from JSON or cache
+    if (!marketData) {
+        try {
+            marketData = await loadJSONData('data/website.json');
+        } catch (error) {
+            console.error('Failed to load market data:', error);
+            marketData = getCachedData();
+        }
+    }
+    
+    const websites = marketData?.websites || [];
 
     app.innerHTML = `
         <style>
@@ -121,6 +53,31 @@ export const renderMarketPage = () => {
                 font-size: 1.2rem;
             }
             
+            .search-bar {
+                max-width: 500px;
+                margin: 0 auto 30px;
+            }
+            
+            .search-bar input {
+                width: 100%;
+                padding: 15px 25px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 30px;
+                color: #fff;
+                font-size: 1rem;
+            }
+            
+            .search-bar input::placeholder {
+                color: rgba(255, 255, 255, 0.5);
+            }
+            
+            .search-bar input:focus {
+                outline: none;
+                border-color: rgba(0, 212, 255, 0.6);
+                box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+            }
+            
             .category-filter {
                 display: flex;
                 justify-content: center;
@@ -144,6 +101,7 @@ export const renderMarketPage = () => {
             .category-btn.active {
                 background: linear-gradient(135deg, #00d4ff, #7b2ff7);
                 border-color: transparent;
+                transform: translateY(-2px);
             }
             
             .products-grid {
@@ -155,15 +113,15 @@ export const renderMarketPage = () => {
             .product-card {
                 background: rgba(255, 255, 255, 0.08);
                 backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
                 border: 1px solid rgba(255, 255, 255, 0.15);
                 border-radius: 20px;
                 overflow: hidden;
                 transition: all 0.4s ease;
+                perspective: 1000px;
             }
             
             .product-card:hover {
-                transform: translateY(-10px);
+                transform: translateY(-10px) rotateX(5deg);
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
                 border-color: rgba(0, 212, 255, 0.3);
             }
@@ -175,7 +133,6 @@ export const renderMarketPage = () => {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 5rem;
                 position: relative;
                 overflow: hidden;
             }
@@ -184,21 +141,11 @@ export const renderMarketPage = () => {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
+                transition: transform 0.4s ease;
             }
             
-            .product-image::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-                transition: left 0.5s ease;
-            }
-            
-            .product-card:hover .product-image::before {
-                left: 100%;
+            .product-card:hover .product-image img {
+                transform: scale(1.1);
             }
             
             .product-category {
@@ -265,7 +212,6 @@ export const renderMarketPage = () => {
             
             .demo-btn:hover {
                 background: rgba(255, 255, 255, 0.2);
-                border-color: rgba(255, 255, 255, 0.4);
             }
             
             .order-btn {
@@ -285,8 +231,11 @@ export const renderMarketPage = () => {
                 box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
             }
             
-            .order-btn:active {
-                transform: translateY(0);
+            .empty-state {
+                text-align: center;
+                padding: 60px;
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 1.2rem;
             }
         </style>
         
@@ -296,6 +245,10 @@ export const renderMarketPage = () => {
                 <p>Premium websites and web applications for your business</p>
             </div>
             
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="🔍 Search websites...">
+            </div>
+            
             <div class="category-filter">
                 <button class="category-btn active" data-category="all">All</button>
                 <button class="category-btn" data-category="Website">Websites</button>
@@ -303,79 +256,67 @@ export const renderMarketPage = () => {
             </div>
             
             <div class="products-grid" id="products-grid">
-                ${renderProducts(products)}
+                ${websites.length > 0 ? '' : '<div class="empty-state">No websites available</div>'}
             </div>
         </div>
     `;
 
-    // Add event listeners for buttons
-    setupEventListeners();
+    // Render products
+    const productsGrid = document.getElementById('products-grid');
+    if (websites.length > 0) {
+        renderProducts(productsGrid, websites);
+    }
+
+    // Setup event listeners
+    setupEventListeners(websites);
 };
 
-const renderProducts = (productsData) => {
-    return productsData.map(product => `
-        <div class="product-card" data-category="${product.category}">
-            <div class="product-image">
-                <img src="${product.image}" alt="${product.name}" onerror="this.parentElement.innerHTML='🛒'">
-                <span class="product-category">${product.category}</span>
-            </div>
-            <div class="product-info">
-                <h3>${product.name}</h3>
-                <p>${product.description}</p>
-                <div class="product-footer">
-                    <span class="product-price">${product.price}</span>
-                    <div class="product-buttons">
-                        <a href="${product.demoLink}" target="_blank" class="demo-btn">
-                            <span>👁️</span> Demo
-                        </a>
-                        <button class="order-btn" data-product="${product.id}">
-                            Order Now
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-};
-
-const setupEventListeners = () => {
-    // Category filter buttons
+const setupEventListeners = (allProducts) => {
     const categoryBtns = document.querySelectorAll('.category-btn');
     const productsGrid = document.getElementById('products-grid');
+    const searchInput = document.getElementById('search-input');
     
+    let currentCategory = 'all';
+    let searchQuery = '';
+    
+    const updateDisplay = () => {
+        let filtered = allProducts;
+        
+        if (currentCategory !== 'all') {
+            filtered = filterProducts(filtered, currentCategory);
+        }
+        
+        if (searchQuery) {
+            filtered = searchProducts(filtered, searchQuery);
+        }
+        
+        renderProducts(productsGrid, filtered);
+    };
+    
+    // Category filter
     categoryBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Update active state
             categoryBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
-            const category = btn.dataset.category;
-            
-            // Filter products
-            let filteredProducts = products;
-            if (category !== 'all') {
-                filteredProducts = products.filter(p => p.category === category);
-            }
-            
-            productsGrid.innerHTML = renderProducts(filteredProducts);
-            setupOrderButtons();
+            currentCategory = btn.dataset.category;
+            updateDisplay();
         });
     });
     
-    setupOrderButtons();
-};
-
-const setupOrderButtons = () => {
-    const orderBtns = document.querySelectorAll('.order-btn');
-    orderBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const productId = e.target.dataset.product;
-            const product = products.find(p => p.id === parseInt(productId));
-            if (product) {
-                alert(`Order placed for ${product.name}!\n\nPrice: ${product.price}\n\nWe will contact you shortly.`);
-            }
+    // Search
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            updateDisplay();
         });
-    });
+    }
 };
 
-export default { renderMarketPage };
+// Export for external access
+export const getMarketData = () => marketData;
+export const refreshMarketData = async () => {
+    marketData = await loadJSONData('data/website.json');
+    return marketData;
+};
+
+export default { renderMarketPage, getMarketData, refreshMarketData };
